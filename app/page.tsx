@@ -1,26 +1,60 @@
 'use client'
 
-import { useEffect } from "react";
+import { useCurrentUser } from "@/hooks/userHooks";
+import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
+// Typd
+export interface Message{
+  msg:string;
+  email:string;
+}
 const page = () => {
 
-  const socket = io("http://localhost:8080");
+  // Fetc email from hooks
+  const {email,isLoaded} = useCurrentUser()
 
+  // Set Chat Data
+  const[recData,setRecData] = useState<Message[] | null>(null);
+
+  // Reset data
+  const [data,setData] = useState("");
+
+  // Socket Connection
+  const socket = io("http://localhost:8080")
+
+  // 
   useEffect(() => {
-    // client-side
-    socket.on("connect", () => {
-      console.log(socket.id); // x8WIv7-mJelg7on_ALbx
-    });
-    socket.on("hi",async (data:any) => {
-      console.log(data);
-      
+    // Connection checked
+    socket.on("connect",async () => {
+      console.log(socket.id)
+    })
+    // set previous chats
+    socket.on("chat",async (data:any) => {
+      console.log(data)
+      setRecData(prev => prev ? [...prev, data] : [data])
     })
   }, [])
-
+  
+  // Send the message
+  const EmitData = async () => {
+    socket.emit("chat",{
+      "msg":data,email
+    })
+    // After send the input field is set empty
+    setData("")
+  }
+  
 
   return (
-    <div>page</div>
+    <div>
+      <input value={data} type="text" placeholder="enter msg" onChange={(e) => setData(e.target.value)}/>
+      <button onClick={EmitData}>Send</button>
+      {recData && recData.map((d) => 
+
+      <div>{d.msg} ----  {d.email}</div>
+      )}
+    </div>
   )
 }
 
